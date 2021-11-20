@@ -162,21 +162,23 @@ class Limb {
 }
 
 class RandomMovingLimb {
-  constructor() {
+  constructor(x, y) {
+    var calcLen = Math.ceil(Math.sqrt((canvas.width + 250) / 10));
+
     this.constants = {
       width: canvas.width,
       height: canvas.height,
-      nsegments: 115,
-      segLength: 11.5,
-      baseRadius: 50,
+      nsegments: Math.ceil(((canvas.width + 250) * 1.0) / calcLen),
+      segLength: calcLen,
+      baseRadius: 65,
       maxSpeed: 0.5,
       numLimbs: 3,
     };
 
     this.limb = new Limb(
       this.constants.nsegments,
-      -this.constants.baseRadius,
-      this.constants.height / 2,
+      x,
+      y,
       this.constants.segLength,
       this.constants.baseRadius
     );
@@ -220,11 +222,31 @@ class RandomMovingLimb {
 }
 
 var limbs = [];
-var limbToCursor = new Limb(115, -50, canvas.height / 2, 10, 50);
+
+var limbLength = Math.floor(Math.sqrt(canvas.width / 10));
+
+var limbToCursor = new Limb(
+  Math.ceil((canvas.width * 1.0) / limbLength),
+  -60,
+  canvas.height / 2,
+  limbLength,
+  60
+);
 limbToCursor.updateAndDraw(canvas.width / 2, 0);
 
-for (let i = 0; i < noOfAdditionalLimbs; i++) {
-  limbs.push(new RandomMovingLimb());
+for (let i = 0; i < noOfAdditionalLimbs / 2; i++) {
+  limbs.push(
+    new RandomMovingLimb(
+      -80,
+      canvas.height / 2 - (0.5 + Math.random() / 2) * 100
+    )
+  );
+  limbs.push(
+    new RandomMovingLimb(
+      -80,
+      canvas.height / 2 + (0.5 + Math.random() / 2) * 100
+    )
+  );
 }
 
 var mouseX = canvas.width / 2;
