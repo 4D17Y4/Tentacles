@@ -8,31 +8,78 @@ canvas.height = window.innerHeight;
 const constants = {
   width: canvas.width,
   height: canvas.height,
-  nsegments: 30,
-  segLength: 10,
+  nsegments: 100,
+  segLength: 15,
+  baseRadius: 50,
+  circleSegments: 15,
+  maxSpeed: 10,
+  numLimbs: 3,
 };
+
+var baseRadius = constants.baseRadius;
 
 class Segment {
   constructor(x, y, length, angle = 0) {
     this.x = x;
     this.y = y;
     this.length = length;
+    this.angle = angle;
     this.x2 = x + length * Math.cos(angle);
     this.y2 = y + length * Math.sin(angle);
     this.next = null;
   }
 
-  draw() {
+  drawLine(pointA, pointB) {
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x2, this.y2);
+    ctx.strokeStyle = "red";
+    ctx.moveTo(pointA.x, pointA.y);
+    ctx.lineTo(pointB.x, pointB.y);
     ctx.stroke();
+  }
+
+  draw(segNo) {
+    var outerRadius = baseRadius;
+    baseRadius = ((segNo - 1) * baseRadius * 1.0) / segNo;
+    var innerRadius = baseRadius;
+
+    var pointA = { x: this.x + outerRadius, y: this.y };
+    var pointB = { x: this.x2 + innerRadius, y: this.y2 };
+    this.drawLine(pointA, pointB);
+    for (let i = 1; i < constants.circleSegments; i++) {
+      let pointA2 = {
+        x:
+          this.x +
+          outerRadius *
+            Math.cos(i * ((2 * Math.PI) / constants.circleSegments)),
+        y:
+          this.y +
+          outerRadius *
+            Math.sin(i * ((2 * Math.PI) / constants.circleSegments)),
+      };
+      let pointB2 = {
+        x:
+          this.x2 +
+          innerRadius *
+            Math.cos(i * ((2 * Math.PI) / constants.circleSegments)),
+        y:
+          this.y2 +
+          innerRadius *
+            Math.sin(i * ((2 * Math.PI) / constants.circleSegments)),
+      };
+      this.drawLine(pointB, pointB2);
+      this.drawLine(pointA2, pointB2);
+      pointA = pointA2;
+      pointB = pointB2;
+    }
+    // this.drawLine(pointA, { x: this.x + outerRadius, y: this.y });
+    this.drawLine(pointB, { x: this.x2 + innerRadius, y: this.y2 });
   }
 
   moveTo(newx, newy) {
     this.x2 = newx;
     this.y2 = newy;
     let theta = Math.atan2(this.y2 - this.y, this.x2 - this.x);
+    this.angle = theta;
     this.x = this.x2 - this.length * Math.cos(theta);
     this.y = this.y2 - this.length * Math.sin(theta);
   }
@@ -55,7 +102,7 @@ class Limb {
   shiftTo = (endx, endy) => {
     this.shiftLimb(this.seg, endx - this.seg.x, endy - this.seg.y);
   };
-  draw = () => this.drawLimb(this.seg);
+  draw = () => this.drawLimb(this.seg, constants.nsegments);
 
   getEnd() {
     var temp = this.seg;
@@ -93,78 +140,89 @@ class Limb {
     }
   }
 
-  drawLimb(nseg) {
+  drawLimb(nseg, n) {
     if (nseg) {
-      nseg.draw();
-      this.drawLimb(nseg.next);
+      nseg.draw(n);
+      this.drawLimb(nseg.next, --n);
     }
+  }
+
+  updateAndDraw(x, y) {
+    var constx = this.seg.x;
+    var consty = this.seg.y;
+    this.moveTo(x, y);
+    this.shiftTo(constx, consty);
+    baseRadius = constants.baseRadius;
+    this.draw();
   }
 }
 
-function drawLoop(loop) {
-  for (let i = 0; i < loop.length - 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(loop[i][0], loop[i][1]);
-    ctx.lineTo(loop[i + 1][0], loop[i + 1][1]);
-    ctx.stroke();
+class RandomMovingLimb {
+  constructor(limb) {
+    this.limb = limb;
+    this.curx = Math.random() * constants.width;
+    this.cury = Math.random() * constants.height;
+    this.direction = Math.random() * 2 * Math.PI;
   }
-  if (true) {
-    ctx.beginPath();
-    ctx.moveTo(loop[loop.length - 1][0], loop[loop.length - 1][1]);
-    ctx.lineTo(loop[0][0], loop[0][1]);
-    ctx.stroke();
+
+  randomMotion() {
+    if (Math.random() > 0.9) {
+      if (Math.random() > 0.5) {
+        this.direction += (Math.random() * Math.PI) / 4;
+      } else {
+        this.direction -= (Math.random() * Math.PI) / 4;
+      }
+    }
+    var randomSpeed = Math.random() * constants.maxSpeed;
+    var newx = this.curx + randomSpeed * Math.cos(this.direction);
+    var newy = this.cury + randomSpeed * Math.sin(this.direction);
+
+    if (newx < -2 * constants.baseRadius) {
+      newx = -2 * constants.baseRadius;
+      this.direction = Math.PI - this.direction;
+    } else if (newx > constants.width + 2 * constants.baseRadius) {
+      newx = constants.width + 2 * constants.baseRadius;
+      this.direction = Math.PI - this.direction;
+    }
+    if (newy < -2 * constants.baseRadius) {
+      newy = -2 * constants.baseRadius;
+      this.direction = -this.direction;
+    } else if (newy > constants.height + 2 * constants.baseRadius) {
+      newy = constants.height + 2 * constants.baseRadius;
+      this.direction = -this.direction;
+    }
+    this.limb.updateAndDraw(newx, newy);
+    this.curx = newx;
+    this.cury = newy;
   }
 }
 
 var limbs = [];
-limbs.push(
-  new Limb(constants.nsegments, constants.width / 2, constants.height / 2)
-);
 
-var sections = 100;
-var radius = 100;
-for (let i = 0; i < sections; i++) {
-  var angle = (1.0 / sections) * 2 * Math.PI * i;
-  var x = constants.width / 2 + radius * Math.cos(angle);
-  var y = constants.height / 2 + radius * Math.sin(angle);
-  limbs.push(new Limb(constants.nsegments, x, y));
+for (let i = 0; i < constants.numLimbs; i++) {
+  limbs.push(
+    new RandomMovingLimb(
+      new Limb(constants.nsegments, -constants.baseRadius, constants.height / 2)
+    )
+  );
 }
 
-var avail = true;
-
-document.addEventListener("mousemove", (e) => {
-  if (avail) {
-    avail = false;
-    ctx.clearRect(0, 0, constants.width, constants.height);
-    var limbToFollow = limbs[0];
-
-    let fixedx = limbToFollow.seg.x;
-    let fixedy = limbToFollow.seg.y;
-    limbToFollow.moveTo(e.clientX, e.clientY);
-    limbToFollow.shiftTo(fixedx, fixedy);
-
-    let followPoint = limbToFollow.getEnd();
-    limbs.forEach((limb) => {
-      if (limb != limbToFollow) {
-        let fixedx = limb.seg.x;
-        let fixedy = limb.seg.y;
-        limb.moveTo(followPoint.x, followPoint.y);
-        limb.shiftTo(fixedx, fixedy);
-        limb.draw();
-      }
-    });
-
-    var tempSegs = limbs.map((limb) => limb.seg);
-    tempSegs.splice(0, 1);
-    while (tempSegs[0]) {
-      let loop = [];
-      for (let i = 0; i < tempSegs.length; i++) {
-        let temp = tempSegs[i];
-        loop.push([temp.x, temp.y]);
-        tempSegs[i] = tempSegs[i].next;
-      }
-      drawLoop(loop);
-    }
-    avail = true;
+function animate() {
+  ctx.clearRect(0, 0, constants.width, constants.height);
+  for (let i = 0; i < constants.numLimbs; i++) {
+    limbs[i].randomMotion();
   }
-});
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+// document.addEventListener("mousemove", (e) => {
+//   if (avail) {
+//     avail = false;
+//     ctx.clearRect(0, 0, constants.width, constants.height);
+//     limb1.updateAndDraw(e.clientX, e.clientY);
+//     limb2.updateAndDraw(e.clientX, e.clientY);
+//     avail = true;
+//   }
+// });
