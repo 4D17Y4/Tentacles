@@ -5,8 +5,8 @@ console.log("linked");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const circleSegments = 15;
-const noOfAdditionalLimbs = 0;
+const circleSegments = 12;
+const noOfAdditionalLimbs = 2;
 const noOfSegmentsToSegLengthRatio = 10;
 
 class Segment {
@@ -22,7 +22,7 @@ class Segment {
 
   drawLine(pointA, pointB) {
     ctx.beginPath();
-    ctx.strokeStyle = "red";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
     ctx.moveTo(pointA.x, pointA.y);
     ctx.lineTo(pointB.x, pointB.y);
     ctx.stroke();
@@ -151,7 +151,7 @@ class Limb {
   }
 
   updateAndDraw(x, y) {
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 1; i++) {
       var constx = this.seg.x;
       var consty = this.seg.y;
       this.moveTo(x, y);
@@ -185,6 +185,7 @@ class RandomMovingLimb {
     this.direction = Math.random() * 2 * Math.PI;
   }
 
+  // crappy random function, TODO : change
   randomMotion() {
     if (Math.random() > 0.75) {
       if (Math.random() > 0.5) {

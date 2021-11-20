@@ -1,3 +1,18 @@
 body {
-  background-color: #f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #181818;
+}
+
+h1 {
+  text-align: center;
+  z-index: 1;
+  margin: 0;
+  bottom: 20px;
+  right: 20px;
+  position: absolute;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 2em;
+  font-family: "Ubuntu", sans-serif;
 }
