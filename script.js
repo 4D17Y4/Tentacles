@@ -95,14 +95,13 @@ class Limb {
 
 var limbs = [];
 
-for (let i = 0; i < constants.width; i += 100) {
-  limbs.push(new Limb(Math.floor(constants.nsegments), i, 0));
-  limbs.push(new Limb(Math.floor(constants.nsegments), i, constants.height));
-}
-
-for (let i = 0; i < constants.height; i += 100) {
-  limbs.push(new Limb(Math.floor(constants.nsegments), 0, i));
-  limbs.push(new Limb(Math.floor(constants.nsegments), constants.width, i));
+var sections = 10;
+var radius = 100;
+for (let i = 0; i < sections; i++) {
+  var angle = (1.0 / sections) * 2 * Math.PI * i;
+  var x = constants.width / 2 + radius * Math.cos(angle);
+  var y = constants.height / 2 + radius * Math.sin(angle);
+  limbs.push(new Limb(constants.nsegments, x, y));
 }
 
 document.addEventListener("mousemove", (e) => {
