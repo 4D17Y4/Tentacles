@@ -221,13 +221,14 @@ class RandomMovingLimb {
 
 var limbs = [];
 var limbToCursor = new Limb(115, -50, canvas.height / 2, 10, 50);
+limbToCursor.updateAndDraw(canvas.width / 2, 0);
 
 for (let i = 0; i < noOfAdditionalLimbs; i++) {
   limbs.push(new RandomMovingLimb());
 }
 
-var mouseX = null;
-var mouseY = null;
+var mouseX = canvas.width / 2;
+var mouseY = canvas.height / 2;
 
 function animate() {
   requestAnimationFrame(animate);
