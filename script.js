@@ -5,18 +5,9 @@ console.log("linked");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const constants = {
-  width: canvas.width,
-  height: canvas.height,
-  nsegments: 100,
-  segLength: 15,
-  baseRadius: 50,
-  circleSegments: 15,
-  maxSpeed: 10,
-  numLimbs: 3,
-};
-
-var baseRadius = constants.baseRadius;
+const circleSegments = 15;
+const noOfAdditionalLimbs = 0;
+const noOfSegmentsToSegLengthRatio = 10;
 
 class Segment {
   constructor(x, y, length, angle = 0) {
@@ -37,7 +28,7 @@ class Segment {
     ctx.stroke();
   }
 
-  draw(segNo) {
+  draw(segNo, baseRadius) {
     var outerRadius = baseRadius;
     baseRadius = ((segNo - 1) * baseRadius * 1.0) / segNo;
     var innerRadius = baseRadius;
@@ -45,26 +36,20 @@ class Segment {
     var pointA = { x: this.x + outerRadius, y: this.y };
     var pointB = { x: this.x2 + innerRadius, y: this.y2 };
     this.drawLine(pointA, pointB);
-    for (let i = 1; i < constants.circleSegments; i++) {
+    for (let i = 1; i < circleSegments; i++) {
       let pointA2 = {
         x:
-          this.x +
-          outerRadius *
-            Math.cos(i * ((2 * Math.PI) / constants.circleSegments)),
+          this.x + outerRadius * Math.cos(i * ((2 * Math.PI) / circleSegments)),
         y:
-          this.y +
-          outerRadius *
-            Math.sin(i * ((2 * Math.PI) / constants.circleSegments)),
+          this.y + outerRadius * Math.sin(i * ((2 * Math.PI) / circleSegments)),
       };
       let pointB2 = {
         x:
           this.x2 +
-          innerRadius *
-            Math.cos(i * ((2 * Math.PI) / constants.circleSegments)),
+          innerRadius * Math.cos(i * ((2 * Math.PI) / circleSegments)),
         y:
           this.y2 +
-          innerRadius *
-            Math.sin(i * ((2 * Math.PI) / constants.circleSegments)),
+          innerRadius * Math.sin(i * ((2 * Math.PI) / circleSegments)),
       };
       this.drawLine(pointB, pointB2);
       this.drawLine(pointA2, pointB2);
@@ -93,16 +78,26 @@ class Segment {
 }
 
 class Limb {
-  constructor(count, orginx, originy) {
-    console.log(count, orginx, originy);
-    this.seg = this.create(count, orginx, originy);
+  constructor(noOfSegments, orginx, originy, segLength, baseRadius) {
+    this.noOfSegments = noOfSegments;
+    this.segLength = segLength;
+    this.baseRadius = baseRadius;
+    this.seg = this.create(
+      noOfSegments,
+      orginx,
+      originy,
+      Math.random() * 2 * Math.PI
+    );
   }
 
   moveTo = (endx, endy) => this.moveLimb(this.seg, endx, endy);
   shiftTo = (endx, endy) => {
     this.shiftLimb(this.seg, endx - this.seg.x, endy - this.seg.y);
   };
-  draw = () => this.drawLimb(this.seg, constants.nsegments);
+  draw = () => {
+    // console.log(this);
+    this.drawLimb(this.seg, this.noOfSegments, this.baseRadius);
+  };
 
   getEnd() {
     var temp = this.seg;
@@ -112,12 +107,19 @@ class Limb {
     return { x: temp.x2, y: temp.y2 };
   }
 
-  create(count, endx, endy) {
+  create(count, endx, endy, angle = 0) {
     if (count == 0) {
       return null;
     }
-    let nseg = new Segment(endx, endy, constants.segLength);
-    nseg.next = this.create(count - 1, nseg.x2, nseg.y2);
+    let nseg = new Segment(endx, endy, this.segLength, angle);
+    var newAngle = angle;
+    if (Math.random() > 0.9)
+      if (Math.random() > 0.5) {
+        newAngle += (Math.random() * Math.PI) / 10;
+      } else {
+        newAngle -= (Math.random() * Math.PI) / 10;
+      }
+    nseg.next = this.create(count - 1, nseg.x2, nseg.y2, newAngle);
     return nseg;
   }
 
@@ -140,55 +142,74 @@ class Limb {
     }
   }
 
-  drawLimb(nseg, n) {
+  drawLimb(nseg, n, baseRadius) {
     if (nseg) {
-      nseg.draw(n);
-      this.drawLimb(nseg.next, --n);
+      nseg.draw(n, baseRadius);
+      baseRadius = ((n - 1) * baseRadius * 1.0) / n;
+      this.drawLimb(nseg.next, --n, baseRadius);
     }
   }
 
   updateAndDraw(x, y) {
-    var constx = this.seg.x;
-    var consty = this.seg.y;
-    this.moveTo(x, y);
-    this.shiftTo(constx, consty);
-    baseRadius = constants.baseRadius;
+    for (let i = 0; i < 2; i++) {
+      var constx = this.seg.x;
+      var consty = this.seg.y;
+      this.moveTo(x, y);
+      this.shiftTo(constx, consty);
+    }
     this.draw();
   }
 }
 
 class RandomMovingLimb {
-  constructor(limb) {
-    this.limb = limb;
-    this.curx = Math.random() * constants.width;
-    this.cury = Math.random() * constants.height;
+  constructor() {
+    this.constants = {
+      width: canvas.width,
+      height: canvas.height,
+      nsegments: 115,
+      segLength: 11.5,
+      baseRadius: 50,
+      maxSpeed: 0.5,
+      numLimbs: 3,
+    };
+
+    this.limb = new Limb(
+      this.constants.nsegments,
+      -this.constants.baseRadius,
+      this.constants.height / 2,
+      this.constants.segLength,
+      this.constants.baseRadius
+    );
+    this.curx = Math.random() * this.constants.width;
+    this.cury = Math.random() * this.constants.height;
     this.direction = Math.random() * 2 * Math.PI;
   }
 
   randomMotion() {
-    if (Math.random() > 0.9) {
+    if (Math.random() > 0.75) {
       if (Math.random() > 0.5) {
-        this.direction += (Math.random() * Math.PI) / 4;
+        this.direction += (Math.random() * Math.PI) / 10;
       } else {
-        this.direction -= (Math.random() * Math.PI) / 4;
+        this.direction -= (Math.random() * Math.PI) / 10;
       }
     }
-    var randomSpeed = Math.random() * constants.maxSpeed;
+    var randomSpeed = 7 + Math.random() * this.constants.maxSpeed;
+
     var newx = this.curx + randomSpeed * Math.cos(this.direction);
     var newy = this.cury + randomSpeed * Math.sin(this.direction);
 
-    if (newx < -2 * constants.baseRadius) {
-      newx = -2 * constants.baseRadius;
+    if (newx < -2 * this.constants.baseRadius) {
+      newx = -2 * this.constants.baseRadius;
       this.direction = Math.PI - this.direction;
-    } else if (newx > constants.width + 2 * constants.baseRadius) {
-      newx = constants.width + 2 * constants.baseRadius;
+    } else if (newx > this.constants.width + 2 * this.constants.baseRadius) {
+      newx = this.constants.width + 2 * this.constants.baseRadius;
       this.direction = Math.PI - this.direction;
     }
-    if (newy < -2 * constants.baseRadius) {
-      newy = -2 * constants.baseRadius;
+    if (newy < -2 * this.constants.baseRadius) {
+      newy = -2 * this.constants.baseRadius;
       this.direction = -this.direction;
-    } else if (newy > constants.height + 2 * constants.baseRadius) {
-      newy = constants.height + 2 * constants.baseRadius;
+    } else if (newy > this.constants.height + 2 * this.constants.baseRadius) {
+      newy = this.constants.height + 2 * this.constants.baseRadius;
       this.direction = -this.direction;
     }
     this.limb.updateAndDraw(newx, newy);
@@ -198,31 +219,29 @@ class RandomMovingLimb {
 }
 
 var limbs = [];
+var limbToCursor = new Limb(115, -50, canvas.height / 2, 10, 50);
 
-for (let i = 0; i < constants.numLimbs; i++) {
-  limbs.push(
-    new RandomMovingLimb(
-      new Limb(constants.nsegments, -constants.baseRadius, constants.height / 2)
-    )
-  );
+for (let i = 0; i < noOfAdditionalLimbs; i++) {
+  limbs.push(new RandomMovingLimb());
 }
 
+var mouseX = null;
+var mouseY = null;
+
 function animate() {
-  ctx.clearRect(0, 0, constants.width, constants.height);
-  for (let i = 0; i < constants.numLimbs; i++) {
+  requestAnimationFrame(animate);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < noOfAdditionalLimbs; i++) {
     limbs[i].randomMotion();
   }
-  requestAnimationFrame(animate);
+  if (mouseX && mouseY) limbToCursor.updateAndDraw(mouseX, mouseY);
 }
 
 animate();
 
-// document.addEventListener("mousemove", (e) => {
-//   if (avail) {
-//     avail = false;
-//     ctx.clearRect(0, 0, constants.width, constants.height);
-//     limb1.updateAndDraw(e.clientX, e.clientY);
-//     limb2.updateAndDraw(e.clientX, e.clientY);
-//     avail = true;
-//   }
-// });
+document.addEventListener("mousemove", (e) => {
+  if (e.clientX && e.clientY) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+});
