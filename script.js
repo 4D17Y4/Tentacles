@@ -5,9 +5,9 @@ console.log("linked");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const circleSegments = 12;
+const circleSegments = 15;
 const noOfAdditionalLimbs = 2;
-const noOfSegmentsToSegLengthRatio = 10;
+const noOfSegmentsToSegLengthRatio = 8;
 
 class Segment {
   constructor(x, y, length, angle = 0) {
@@ -56,7 +56,6 @@ class Segment {
       pointA = pointA2;
       pointB = pointB2;
     }
-    // this.drawLine(pointA, { x: this.x + outerRadius, y: this.y });
     this.drawLine(pointB, { x: this.x2 + innerRadius, y: this.y2 });
   }
 
@@ -163,7 +162,9 @@ class Limb {
 
 class RandomMovingLimb {
   constructor(x, y) {
-    var calcLen = Math.ceil(Math.sqrt((canvas.width + 250) / 10));
+    var calcLen = Math.ceil(
+      Math.sqrt((canvas.width + 250) / noOfSegmentsToSegLengthRatio)
+    );
 
     this.constants = {
       width: canvas.width,
@@ -223,7 +224,9 @@ class RandomMovingLimb {
 
 var limbs = [];
 
-var limbLength = Math.floor(Math.sqrt(canvas.width / 10));
+var limbLength = Math.floor(
+  Math.sqrt(canvas.width / noOfSegmentsToSegLengthRatio)
+);
 
 var limbToCursor = new Limb(
   Math.ceil((canvas.width * 1.0) / limbLength),
@@ -232,7 +235,6 @@ var limbToCursor = new Limb(
   limbLength,
   60
 );
-limbToCursor.updateAndDraw(canvas.width / 2, 0);
 
 for (let i = 0; i < noOfAdditionalLimbs / 2; i++) {
   limbs.push(
